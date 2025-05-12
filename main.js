@@ -1,33 +1,28 @@
-function copyEvents() {
-  var sourceCalendarId = '{}'; // 元のカレンダーのID
-  var targetCalendarId = '{}'; // 予定を追加したいカレンダーのID
-  
-  var startDate = new Date(); // 開始日を今日に設定
+function deleteNonInvitedEvents() {
+  var targetCalendarId = 'hiroaki.yamato@sparkplus.co.jp'; // 移行先のカレンダーID
+  var startDate = new Date(); // 今日から
   var endDate = new Date();
-  endDate.setDate(endDate.getDate() + 14); // 2週間後の予定をコピー（期間の調整）
-  
-  var sourceCalendar = CalendarApp.getCalendarById(sourceCalendarId);
+  endDate.setDate(endDate.getDate() + 14); // 2週間後までの予定を対象に
+
   var targetCalendar = CalendarApp.getCalendarById(targetCalendarId);
   
-  var events = sourceCalendar.getEvents(startDate, endDate);
+  // ターゲットカレンダーのイベントを取得
+  var events = targetCalendar.getEvents(startDate, endDate);
   
-  // イベントをターゲットカレンダーに追加
+  // イベントを1つずつ確認して削除
   for (var i = 0; i < events.length; i++) {
     var event = events[i];
     
-    // 全日イベントかどうかを確認
-    if (event.isAllDayEvent()) {
-      targetCalendar.createAllDayEvent(event.getTitle(), event.getStartTime(), event.getEndTime(), {
-        description: event.getDescription(),
-        location: event.getLocation(),
-        guests: event.getGuestList().map(function(guest) { return guest.getEmail(); }).join(',')
-      });
-    } else {
-      targetCalendar.createEvent(event.getTitle(), event.getStartTime(), event.getEndTime(), {
-        description: event.getDescription(),
-        location: event.getLocation(),
-        guests: event.getGuestList().map(function(guest) { return guest.getEmail(); }).join(',')
-      });
+    // あなたがゲストとして招待されている場合
+    var guestEmails = event.getGuestList().map(function(guest) {
+      return guest.getEmail();
+    });
+
+    // あなたがそのイベントの主催者ではない、そしてゲストとして招待されていない場合に削除
+    if (event.getCreators().indexOf(targetCalendarId) === -1 && guestEmails.indexOf(targetCalendarId) === -1) {
+      // イベントを削除
+      event.deleteEvent();
+      Logger.log('Deleted event: ' + event.getTitle());
     }
   }
 }
